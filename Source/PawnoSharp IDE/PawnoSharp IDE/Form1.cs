@@ -16,7 +16,7 @@ namespace PawnoSharp_IDE
         //Initialize form2 for use with the New button.
         newFileForm form2 = new newFileForm();
         string openFile = null;
-        public mainForm(string path)
+        public mainForm()
         {
             InitializeComponent();
         }
