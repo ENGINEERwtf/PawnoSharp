@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.IO;
+using ScintillaNET;
 
 namespace PawnoSharp_IDE
 {
@@ -16,6 +17,8 @@ namespace PawnoSharp_IDE
         //Initialize form2 for use with the New button.
         newFileForm form2 = new newFileForm();
         string openFile = null;
+        string settingsFile = System.IO.Path.GetDirectoryName(
+                System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase);
         public mainForm()
         {
             InitializeComponent();
@@ -137,8 +140,8 @@ namespace PawnoSharp_IDE
         /// <param name="e">Event Arguments</param>
         private void weedarrToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            string sampWikiURL = "http://weedarr.wikidot.com/";
-            System.Diagnostics.Process.Start(sampWikiURL);
+            string sampWeedURL = "http://weedarr.wikidot.com/";
+            System.Diagnostics.Process.Start(sampWeedURL);
         }
 
         /// <summary>
@@ -174,10 +177,8 @@ namespace PawnoSharp_IDE
             if (result == DialogResult.OK)
             {
                 Font font = fontDialog1.Font;
-                scintilla1.Font = font;
+                SetFont(font);
                 fontDialog1.Font = font;
-                Properties.Settings.Default.FontName = font.Name;
-                Properties.Settings.Default.FontSize = font.Size;
             }
         }
 
@@ -213,7 +214,7 @@ namespace PawnoSharp_IDE
                 try
                 {
                     statusLabel.Text = "Creating new gamemode...";
-                    scintilla1.Text = File.ReadAllText(@"../../newGM.pwn");
+                    scintilla1.Text = File.ReadAllText(@"newGM.pwn");
                     openFile = null;
                     this.Text = "PawnoSharp";
                     statusLabel.Text = "Created new gamemode.";
@@ -229,7 +230,7 @@ namespace PawnoSharp_IDE
                 try
                 {
                     statusLabel.Text = "Creating new filterscript...";
-                    scintilla1.Text = File.ReadAllText(@"../../newFS.pwn");
+                    scintilla1.Text = File.ReadAllText(@"newFS.pwn");
                     openFile = null;
                     this.Text = "PawnoSharp";
                     statusLabel.Text = "Created new filterscript.";
@@ -332,22 +333,59 @@ namespace PawnoSharp_IDE
 
         private void mainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
-            Properties.Settings.Default.FormSize = this.Size;
-            Properties.Settings.Default.FormPos = this.Location;
+            int FormMaximizedI = 0;
+            Size formSize = new Size();
+            Point formPos = new Point();
+            string fontSize = fontDialog1.Font.Size.ToString();
+            string fontName = fontDialog1.Font.Name;
+            
+            //Prepare and convert variables to strings for writing.
+            formSize.Height = this.Size.Height;
+            formSize.Width = this.Size.Width;
 
-            if (this.WindowState == FormWindowState.Maximized)
+            formPos.X = this.Location.X;
+            formPos.Y = this.Location.Y;
+
+            IniFile fsINI = new IniFile();
+
+            Uri uri = new Uri(settingsFile);
+
+
+            //System.IO.Path.GetDirectoryName(
+                //System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase)
+
+            switch(this.WindowState)
             {
-                Properties.Settings.Default.FormMaximized = true;
+                case FormWindowState.Maximized:
+                    FormMaximizedI = 1;
+                    break;
+                case FormWindowState.Normal:
+                    FormMaximizedI = 0;
+                    break;
+                default: break;
             }
-            else if (this.WindowState == FormWindowState.Normal)
-            {
-                Properties.Settings.Default.FormMaximized = false;
-            }
+
+            //Write the variables to Settings.ini
+            fsINI.SetKeyValue("User", "FontSize", fontSize);
+            fsINI.SetKeyValue("User", "FontName", fontName);
+
+            fsINI.SetKeyValue("Application", "FormH", formSize.Height.ToString());
+            fsINI.SetKeyValue("Application", "FormW", formSize.Width.ToString());
+
+            fsINI.SetKeyValue("Application", "FormX", formPos.X.ToString());
+            fsINI.SetKeyValue("Application", "FormY", formPos.Y.ToString());
+
+            fsINI.SetKeyValue("Application", "Maximized", FormMaximizedI.ToString());
+
+            fsINI.AddSection("User").AddKey("FileInTitle").Value = "1";
+
+            fsINI.Save(uri.LocalPath + "\\Settings.ini");
         }
 
         private void mainForm_Load(object sender, EventArgs e)
         {
             this.Text = "PawnoSharp";
+
             //Create the ToolTip component not available in the designer.
             ToolTip toolTip1 = new ToolTip();
             toolTip1.AutoPopDelay = 5000;
@@ -365,25 +403,90 @@ namespace PawnoSharp_IDE
             scintilla1.Margins[0].Width = 50;
 
             //Load the application settings!
-            string fontName = Properties.Settings.Default.FontName;
-            float fontSize = Properties.Settings.Default.FontSize;
-            Size FormSize = Properties.Settings.Default.FormSize;
-            Point FormPos = Properties.Settings.Default.FormPos;
-            bool FormMaximized = Properties.Settings.Default.FormMaximized;
-            bool FormFileTitle = Properties.Settings.Default.FileInTitle;
+            IniFile fsINI = new IniFile();
+            
+            Uri uri = new Uri(settingsFile);
+            fsINI.Load(uri.LocalPath + "\\Settings.ini");
+
+            string fontName = fsINI.GetKeyValue("User", "FontName");
+            string fontSize = fsINI.GetKeyValue("User", "FontSize");
+            float fontSizeF = 0F;
+
+            string FormW = fsINI.GetKeyValue("Application", "FormW");
+            string FormH = fsINI.GetKeyValue("Application", "FormH");
+            int FormWI = Convert.ToInt32(FormW);
+            int FormHI = Convert.ToInt32(FormH);
+
+            string FormX = fsINI.GetKeyValue("Application", "FormX");
+            string FormY = fsINI.GetKeyValue("Application", "FormY");
+            int FormXI = Convert.ToInt32(FormX);
+            int FormYI = Convert.ToInt32(FormY);
+
+            string FormMaximized = fsINI.GetKeyValue("Application", "Maximized");
+            int FormMaximizedI = Convert.ToInt16(FormMaximized);
+
+            string FormFileTitle = fsINI.GetKeyValue("User", "FileInTitle");
+            int FormFileTitleI = Convert.ToInt16(FormFileTitle);
+
+            float.TryParse(fontSize, out fontSizeF);
+
+            Point FormPos = new Point();
+            FormPos.X = FormXI;
+            FormPos.Y = FormYI;
+
+            Size FormSize = new Size();
+            FormSize.Width = FormWI;
+            FormSize.Height = FormHI;
+
 
             //Apply the application settings!
-            Font font = new Font(fontName, fontSize);
-            scintilla1.Font = font;
+            Font font = new Font(fontName, fontSizeF);
+            SetFont(font);
             fontDialog1.Font = font;
 
             this.Location = FormPos;
             this.Size = FormSize;
 
-            if (FormMaximized == true)
+            if (FormMaximizedI == 1)
             {
                 this.WindowState = FormWindowState.Maximized;
             }
+        }
+        public void SetFont(Font xFont)
+        {
+            scintilla1.Font = xFont;
+
+            scintilla1.Styles.Default.Font = xFont;
+
+            scintilla1.Styles[0].Font = xFont;
+            scintilla1.Styles[1].Font = xFont;
+            scintilla1.Styles[2].Font = xFont;
+            scintilla1.Styles[3].Font = xFont;
+            scintilla1.Styles[4].Font = xFont;
+            scintilla1.Styles[5].Font = xFont;
+            scintilla1.Styles[6].Font = xFont;
+            scintilla1.Styles[7].Font = xFont;
+            scintilla1.Styles[8].Font = xFont;
+            scintilla1.Styles[9].Font = xFont;
+            scintilla1.Styles[10].Font = xFont;
+            scintilla1.Styles[11].Font = xFont;
+            scintilla1.Styles[12].Font = xFont;
+            scintilla1.Styles[14].Font = xFont;
+            scintilla1.Styles[15].Font = xFont;
+            scintilla1.Styles[16].Font = xFont;
+            scintilla1.Styles[19].Font = xFont;
+            scintilla1.Styles[32].Font = xFont;
+
+            scintilla1.Styles[ScintillaNET.StylesCommon.LineNumber].Font = xFont;
+            scintilla1.Styles[ScintillaNET.StylesCommon.BraceBad].Font = xFont;
+            scintilla1.Styles[ScintillaNET.StylesCommon.BraceLight].Font = xFont;
+            scintilla1.Styles[ScintillaNET.StylesCommon.CallTip].Font = xFont;
+            scintilla1.Styles[ScintillaNET.StylesCommon.ControlChar].Font = xFont;
+            scintilla1.Styles[ScintillaNET.StylesCommon.Default].Font = xFont;
+            scintilla1.Styles[ScintillaNET.StylesCommon.IndentGuide].Font = xFont;
+            scintilla1.Styles[ScintillaNET.StylesCommon.LastPredefined].Font = xFont;
+            scintilla1.Styles[ScintillaNET.StylesCommon.Max].Font = xFont;
+
         }
 
     }
