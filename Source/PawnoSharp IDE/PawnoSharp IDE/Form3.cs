@@ -25,18 +25,18 @@ namespace PawnoSharp_IDE
 
             listView1.Items.Clear();
             string rawOut = null;
-            System.Diagnostics.Process clsProcess = new System.Diagnostics.Process();
-            clsProcess.StartInfo.UseShellExecute = false;
-            clsProcess.StartInfo.RedirectStandardOutput = true;
-            clsProcess.StartInfo.RedirectStandardError = true;
-            clsProcess.StartInfo.FileName = "pawncc.exe";
-            clsProcess.StartInfo.Arguments = "\"" + path + "\"" + " -r";
-            clsProcess.StartInfo.CreateNoWindow = true;
-            clsProcess.Start();
-            while ((clsProcess.HasExited == false))
+            System.Diagnostics.Process stCompile = new System.Diagnostics.Process();
+            stCompile.StartInfo.UseShellExecute = false;
+            stCompile.StartInfo.RedirectStandardOutput = true;
+            stCompile.StartInfo.RedirectStandardError = true;
+            stCompile.StartInfo.FileName = "pawncc.exe";
+            stCompile.StartInfo.Arguments = "\"" + path + "\"" + " -r -;+ -(+";
+            stCompile.StartInfo.CreateNoWindow = true;
+            stCompile.Start();
+            while ((stCompile.HasExited == false))
             {
-                rawOut = clsProcess.StandardError.ReadToEnd();
-                rawOut += clsProcess.StandardOutput.ReadToEnd();
+                rawOut = stCompile.StandardError.ReadToEnd();
+                rawOut += stCompile.StandardOutput.ReadToEnd();
                 if ((!string.IsNullOrEmpty(rawOut)))
                 {
                 }
@@ -79,5 +79,7 @@ namespace PawnoSharp_IDE
             Clipboard.SetText(richTextBox1.Text);
             MessageBox.Show("Copied to clipboard!");
         }
+
+
     }
 }

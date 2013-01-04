@@ -19,6 +19,7 @@ namespace PawnoSharp_IDE
         string openFile = null;
         string settingsFile = System.IO.Path.GetDirectoryName(
                 System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase);
+
         public mainForm()
         {
             InitializeComponent();
