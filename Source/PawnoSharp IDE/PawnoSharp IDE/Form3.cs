@@ -30,7 +30,7 @@ namespace PawnoSharp_IDE
             clsProcess.StartInfo.RedirectStandardOutput = true;
             clsProcess.StartInfo.RedirectStandardError = true;
             clsProcess.StartInfo.FileName = "pawncc.exe";
-            clsProcess.StartInfo.Arguments = path + " -r";
+            clsProcess.StartInfo.Arguments = "\"" + path + "\"" + " -r";
             clsProcess.StartInfo.CreateNoWindow = true;
             clsProcess.Start();
             while ((clsProcess.HasExited == false))
