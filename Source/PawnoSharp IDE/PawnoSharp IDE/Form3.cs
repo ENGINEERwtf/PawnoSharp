@@ -15,8 +15,6 @@ namespace PawnoSharp_IDE
     public partial class compileForm : Form
     {
         private string _path;
-        private static System.Text.StringBuilder m_sbText;
-
         public compileForm(string path)
         {
             InitializeComponent();
@@ -25,41 +23,61 @@ namespace PawnoSharp_IDE
             string pathAesthetic = Path.GetFileName(path);
             this.Text = "Compiling " + pathAesthetic + "...";
 
-            Process myProcess = new Process();
-            ProcessStartInfo startInfo = new ProcessStartInfo("pawncc.exe");
-            startInfo.CreateNoWindow = true;
-            startInfo.UseShellExecute = false;
-            startInfo.RedirectStandardOutput = true;
-            startInfo.RedirectStandardError = true;
-            startInfo.Arguments = path + " -r";
-            myProcess.StartInfo = startInfo;
-            myProcess.Start();
-
-            m_sbText = new System.Text.StringBuilder(1000);
-
-            myProcess.OutputDataReceived += ProcessDataHandler;
-            myProcess.ErrorDataReceived += ProcessDataHandler;
-
-            myProcess.Start();
-
-            myProcess.BeginOutputReadLine();
-            myProcess.BeginErrorReadLine();
-
-            while (!myProcess.HasExited)
+            listView1.Items.Clear();
+            string rawOut = null;
+            System.Diagnostics.Process clsProcess = new System.Diagnostics.Process();
+            clsProcess.StartInfo.UseShellExecute = false;
+            clsProcess.StartInfo.RedirectStandardOutput = true;
+            clsProcess.StartInfo.RedirectStandardError = true;
+            clsProcess.StartInfo.FileName = "pawncc.exe";
+            clsProcess.StartInfo.Arguments = path + " -r";
+            clsProcess.StartInfo.CreateNoWindow = true;
+            clsProcess.Start();
+            while ((clsProcess.HasExited == false))
             {
-                System.Threading.Thread.Sleep(500);
-                System.Windows.Forms.Application.DoEvents();
+                rawOut = clsProcess.StandardError.ReadToEnd();
+                rawOut += clsProcess.StandardOutput.ReadToEnd();
+                if ((!string.IsNullOrEmpty(rawOut)))
+                {
+                }
+
+                Application.DoEvents();
             }
-            richTextBox1.Text = m_sbText.ToString();
-            this.Text = "Compiled " + pathAesthetic + "!";
+
+            richTextBox1.Text = rawOut;
+
+            if (rawOut == String.Empty || rawOut.Contains("warning") == true || rawOut.Contains("error") == true)
+            {
+                dynamic indivLine = rawOut.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
+                for (int i = 0; i <= indivLine.Length; i++)
+                {
+                    if (indivLine[i] == String.Empty) break;
+                    if (indivLine[i].Contains("Pawn compiler 3.2.3664")) continue;
+                    indivLine[i] = indivLine[i].Replace(path, "");
+                    string line = indivLine[i].Substring(indivLine[i].IndexOf('(') + 1, indivLine[i].IndexOf(')') - indivLine[i].IndexOf('(') - 1);
+                    if (indivLine[i].Contains("warning"))
+                    {
+                        ListViewItem newListItem = new ListViewItem("", 0);
+                        newListItem.SubItems.Add(indivLine[i].Replace("(" + line + ") :", "").Trim());
+                        newListItem.SubItems.Add(line);
+                        listView1.Items.Add(newListItem);
+                    }
+                    else if (indivLine[i].Contains("error"))
+                    {
+                        ListViewItem newListItem = new ListViewItem("", 1);
+                        newListItem.SubItems.Add(indivLine[i].Replace("(" + line + ") :", "").Trim());
+                        newListItem.SubItems.Add(line);
+                        listView1.Items.Add(newListItem);
+                    }
+                }
+            }
+            this.Text = "Attempted to compile " + pathAesthetic + ".";
         }
 
-        private static void ProcessDataHandler(object sendingProcess, DataReceivedEventArgs outLine)
+        private void button1_Click(object sender, EventArgs e)
         {
-            if (!String.IsNullOrEmpty(outLine.Data))
-            {
-                m_sbText.AppendLine(outLine.Data);
-            }
+            Clipboard.SetText(richTextBox1.Text);
+            MessageBox.Show("Copied to clipboard!");
         }
     }
 }
